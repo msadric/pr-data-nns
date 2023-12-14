@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
+import martin_util
 
 
 class Net(nn.Module):
@@ -34,7 +35,7 @@ class Net(nn.Module):
         return output
 
 
-def train(args, model, device, train_loader, optimizer, epoch):
+def train(args, model, device, train_loader, optimizer, epoch, results):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -47,11 +48,13 @@ def train(args, model, device, train_loader, optimizer, epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
+            
+            results.write('train epoch' + ',' + str(epoch) + ',' + str(loss.item()) + ',-' +'\n')
             if args.dry_run:
                 break
 
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, results):
     model.eval()
     test_loss = 0
     correct = 0
@@ -65,12 +68,8 @@ def test(model, device, test_loader):
 
     test_loss /= len(test_loader.dataset)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
-    
-    # Save to csv file
-    
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct, len(test_loader.dataset),  100. * correct / len(test_loader.dataset)))
+    results.write('test' + ',' + '-,' + str(test_loss)  + ',' + str(len(test_loader.dataset)) + ',' + str(100. * correct / len(test_loader.dataset)) + '\n')
 
 
 def main():
@@ -80,7 +79,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=14, metavar='N',
+    parser.add_argument('--epochs', type=int, default=2, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -98,8 +97,8 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
-    parser.add_argument('--save-csv', type=str, default=,
-                        help='For Saving the current Model')
+    parser.add_argument('--save-csv', type=str, default=martin_util.create_identifier(), metavar='Ex',
+                        help='Type the name of the experiment')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     #use_mps = not args.no_mps and torch.backends.mps.is_available()
@@ -139,9 +138,13 @@ def main():
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     
+    # create csv file
+    martin_util.create_csv(args.save_csv)
+    results = open(args.save_csv + '.csv', 'a')
+    
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader)
+        train(args, model, device, train_loader, optimizer, epoch, results)
+        test(model, device, test_loader, results)
         scheduler.step()
 
     if args.save_model:
