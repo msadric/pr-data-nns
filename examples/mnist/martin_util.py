@@ -19,7 +19,13 @@ def create_txt(name):
     with open(name + "_setup" + '.txt', 'w') as f:
         f.write('')
         
-def write_setup_to_file(args, cuda, optimizer, scheduler, model, device):
+# Write text file
+def write_to_txt_file(file, information):
+    with open(file, 'a') as f:
+        f.write(str(information) + '\n')
+    
+        
+def write_setup_to_txt_file(args, cuda, optimizer, scheduler, model, device):
         with open(args.save_csv + '_setup' + '.txt', 'a') as setup:
             setup.write("Setup: " +  str(args.save_csv) + '\n')
             setup.write('batch size' + ',' + str(args.batch_size) + '\n')
@@ -37,4 +43,17 @@ def write_setup_to_file(args, cuda, optimizer, scheduler, model, device):
             setup.write('scheduler' + ',' + str(scheduler) + '\n')
             setup.write('model' + ',' + str(model) + '\n')
             setup.write('device' + ',' + str(device) + '\n')
+            
+# Calculate duration time in minutes, seconds, milliseconds
+def calculate_duration(start_time, end_time):
+    duration = end_time - start_time
+    duration_in_s = duration.total_seconds()
+    seconds = duration_in_s
+    minutes = duration_in_s / 60
+    return minutes, seconds
+
+# Print duration time in minutes, seconds, milliseconds
+def training_duration(start_time, end_time):
+    minutes, seconds = calculate_duration(start_time, end_time)
+    return "Duration: " + str(minutes) + " minutes = " + str(seconds) + " seconds"
     

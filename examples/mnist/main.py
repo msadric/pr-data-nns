@@ -7,6 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import martin_util
+import datetime
 
 
 class Net(nn.Module):
@@ -95,7 +96,7 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--save-model', action='store_true', default=False,
+    parser.add_argument('--save-model', action='store_true', default=True,
                         help='For Saving the current Model')
     parser.add_argument('--save-csv', type=str, default=martin_util.create_identifier(), metavar='Ex',
                         help='Type the name of the experiment')
@@ -149,15 +150,21 @@ def main():
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     
-    martin_util.write_setup_to_file(args, cuda, optimizer, scheduler, model, device) # save information about setup to txt file
+    martin_util.write_setup_to_txt_file(args, cuda, optimizer, scheduler, model, device) # save information about setup to txt file
+    
+    start_time = datetime.datetime.now()
     
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch, results)
         test(model, device, test_loader, results)
         scheduler.step()
+        
+    end_time = datetime.datetime.now()
+    martin_util.write_to_txt_file(args.save_csv + "_setup.txt", martin_util.training_duration(start_time, end_time)) # save duration time to txt file
+    print(martin_util.training_duration(start_time, end_time)) # print duration time
 
     if args.save_model:
-        torch.save(model.state_dict(), "mnist_cnn.pt")
+        torch.save(model.state_dict(), args.save_csv + ".pt")
 
 
 if __name__ == '__main__':
