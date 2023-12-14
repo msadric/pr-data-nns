@@ -8,6 +8,8 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import martin_util
 import datetime
+import os
+
 
 
 class Net(nn.Module):
@@ -124,6 +126,10 @@ def main():
     results = open(args.save_csv + '.csv', 'a')
     setup = open(args.save_csv + '_setup' + '.txt', 'a')
     
+    # Method 1: Using os module
+    num_cpus_os = os.cpu_count()
+    setup.write(f"Number of CPUs): {num_cpus_os}" + '\n')
+    
     cuda = "-"
     if use_cuda:
         cuda_kwargs = {'num_workers': 1,
@@ -145,6 +151,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = Net().to(device)
+    model = nn.DataParallel(model)
     
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
