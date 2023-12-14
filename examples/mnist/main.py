@@ -79,8 +79,8 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=2, metavar='N',
-                        help='number of epochs to train (default: 14)')
+    parser.add_argument('--epochs', type=int, default=1, metavar='N',
+                        help='number of epochs to train (default: 1)') # change this default value -> here only one because small dataset 
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
@@ -115,13 +115,24 @@ def main():
     train_kwargs = {'batch_size': args.batch_size}
     test_kwargs = {'batch_size': args.test_batch_size}
     
+    
+    # Create csv and txt file for evaluation
+    martin_util.create_csv(args.save_csv)
+    martin_util.create_txt(args.save_csv)
+    
+    results = open(args.save_csv + '.csv', 'a')
+    setup = open(args.save_csv + '_setup' + '.txt', 'a')
+    
+    cuda = "-"
     if use_cuda:
         cuda_kwargs = {'num_workers': 1,
-                       'pin_memory': True,
-                       'shuffle': True}
+                        'pin_memory': True,
+                        'shuffle': True}
+        
+        cuda = "num_workers: " + str(cuda_kwargs['num_workers']) + ", pin_memory: " + str(cuda_kwargs['pin_memory']) + ", shuffle: " + str(cuda_kwargs['shuffle']) + "\n"
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
-
+    
     transform=transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
@@ -138,9 +149,7 @@ def main():
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     
-    # create csv file
-    martin_util.create_csv(args.save_csv)
-    results = open(args.save_csv + '.csv', 'a')
+    martin_util.write_setup_to_file(args, cuda, optimizer, scheduler, model, device) # save information about setup to txt file
     
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch, results)
