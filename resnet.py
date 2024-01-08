@@ -9,6 +9,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
 def get_dataloaders_mnist(batch_size,
+                          num_workers=0,
                            root='data',
                            validation_fraction=0.1,
                            train_transforms=None,
@@ -169,7 +170,7 @@ def compute_accuracy(model, data_loader):
 
         for i, (features, targets) in enumerate(data_loader):
             features = features.cuda()
-            targets = targets.cuda() # TODO targets.float().cuda()?
+            targets = targets.cuda() 
             
             result = model(features)
             _  , predictions = torch.max(result[0], dim=1)
@@ -187,7 +188,7 @@ def get_right_ddp(model, data_loader):
         for i, (features, targets) in enumerate(data_loader):
 
             features = features.cuda()
-            targets = targets.float().cuda()
+            targets = targets.cuda()
             
             result = model(features)
             _, predictions = torch.max(result[0], dim=1)
@@ -226,7 +227,7 @@ def train_model(model, num_epochs, train_loader,
             optimizer.zero_grad() # Zero out gradients from previous step, because PyTorch accumulates them
             loss.backward() # Backward pass
             
-            dist.all_reduce(loss, op=dist.ReduceOp.SUM) # Sum up mini-mini-batch losses from all processes.
+            dist.all_reduce(torch.tensor(loss), op=dist.ReduceOp.SUM) # Sum up mini-mini-batch losses from all processes.
             loss /= world_size # Divide by number of processes to get average.
             
             optimizer.step()            
@@ -246,10 +247,10 @@ def train_model(model, num_epochs, train_loader,
             right_train, num_train = get_right_ddp(model, train_loader)
             right_valid, num_valid = get_right_ddp(model, valid_loader)
             
-            dist.all_reduce(right_train, op=dist.ReduceOp.SUM)
-            dist.all_reduce(right_valid, op=dist.ReduceOp.SUM)
-            dist.all_reduce(num_train, op=dist.ReduceOp.SUM)
-            dist.all_reduce(num_valid, op=dist.ReduceOp.SUM)
+            dist.all_reduce(torch.tensor(right_train), op=dist.ReduceOp.SUM)
+            dist.all_reduce(torch.tensor(right_valid), op=dist.ReduceOp.SUM)
+            dist.all_reduce(torch.tensor(num_train), op=dist.ReduceOp.SUM)
+            dist.all_reduce(torch.tensor(num_valid), op=dist.ReduceOp.SUM)
             
             # Need to think about this TODO
             
@@ -288,11 +289,8 @@ def train_model(model, num_epochs, train_loader,
 
 def main():
     
-    #world_size = int(os.environ["SLURM_NTASKS"], default=1)
-    #rank = int(os.environ["SLURM_PROCID"], default=0)
-
-    world_size = 1
-    rank = 0
+    world_size = int(os.environ["SLURM_NTASKS"], 2)
+    rank = int(os.environ["SLURM_PROCID"], 0)
 
     
     print("Rank, world_size, device_count:", rank, world_size, torch.cuda.device_count())
@@ -300,6 +298,7 @@ def main():
     address = os.getenv("SLURM_LAUNCH_NODE_IPADDR")  # Get master node address from SLURM environment variable.
     if address is None:
         raise ValueError("SLURM_LAUNCH_NODE_IPADDR is not set.")  
+        
     port = 1234 # Set port number.
     os.environ["MASTER_ADDR"] = str(address) # Set master node address.
     os.environ["MASTER_PORT"] = str(port) # Set master node port.
@@ -324,17 +323,17 @@ def main():
         torchvision.transforms.Resize((70, 70)),
         torchvision.transforms.RandomCrop((64, 64)),
         torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        torchvision.transforms.Normalize((0.5,), (0.5,))
     ])
 
     test_transforms = torchvision.transforms.Compose([
         torchvision.transforms.Resize((70, 70)),        
         torchvision.transforms.CenterCrop((64, 64)),            
         torchvision.transforms.ToTensor(),                
-        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        torchvision.transforms.Normalize((0.5,), (0.5,))
     ])
     
-    train_loader, valid_loader, test_loader = get_dataloaders_mnist(batch_size=batch_size,
+    train_loader, valid_loader = get_dataloaders_mnist(batch_size=batch_size,
                                                                       train_transforms=train_transforms,
                                                                       test_transforms=test_transforms)
     
