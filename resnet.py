@@ -195,7 +195,7 @@ def get_right_ddp(model, data_loader):
             num_samples += targets.size(0)
             correct_pred += (predictions == targets).sum()
         
-    return correct_pred.float(), num_samples       
+    return correct_pred, num_samples       
     
 def train_model(model, num_epochs, train_loader,
                 valid_loader, optimizer):
@@ -227,7 +227,7 @@ def train_model(model, num_epochs, train_loader,
             optimizer.zero_grad() # Zero out gradients from previous step, because PyTorch accumulates them
             loss.backward() # Backward pass
             
-            dist.all_reduce(torch.tensor(loss), op=dist.ReduceOp.SUM) # Sum up mini-mini-batch losses from all processes.
+            dist.all_reduce(loss.clone().detach(), op=dist.ReduceOp.SUM) # Sum up mini-mini-batch losses from all processes.
             loss /= world_size # Divide by number of processes to get average.
             
             optimizer.step()            
@@ -239,7 +239,7 @@ def train_model(model, num_epochs, train_loader,
                       f'| Loss: {loss:.4f}')
                 
         # Validation
-        
+        """
         model.eval()
         
         with torch.no_grad(): 
@@ -247,10 +247,10 @@ def train_model(model, num_epochs, train_loader,
             right_train, num_train = get_right_ddp(model, train_loader)
             right_valid, num_valid = get_right_ddp(model, valid_loader)
             
-            dist.all_reduce(torch.tensor(right_train), op=dist.ReduceOp.SUM)
-            dist.all_reduce(torch.tensor(right_valid), op=dist.ReduceOp.SUM)
-            dist.all_reduce(torch.tensor(num_train), op=dist.ReduceOp.SUM)
-            dist.all_reduce(torch.tensor(num_valid), op=dist.ReduceOp.SUM)
+            dist.all_reduce(right_train.clone().detach(), op=dist.ReduceOp.SUM)
+            dist.all_reduce(right_valid.clone().detach(), op=dist.ReduceOp.SUM)
+            dist.all_reduce(num_train.clone().detach(), op=dist.ReduceOp.SUM)
+            dist.all_reduce(num_valid.clone().detach(), op=dist.ReduceOp.SUM)
             
             # Need to think about this TODO
             
@@ -266,7 +266,7 @@ def train_model(model, num_epochs, train_loader,
                   f'| Validation: {valid_acc :.2f}%')
                   valid_acc_history.append(valid_acc)
                   train_acc_history.append(train_acc)
-            
+         """   
         elapsed = time.time() - start
         Elapsed = torch.Tensor([elapsed]).cuda()
         
