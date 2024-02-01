@@ -1,3 +1,7 @@
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes):
         super(ResNet, self).__init__()
