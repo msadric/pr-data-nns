@@ -1,0 +1,1 @@
+model_name,dataset_name,random_seed,batch_size,num_epochs,num_devices,training_time_in_hours,final_train_accuracy,final_validation_accuracy,test_accuracy
