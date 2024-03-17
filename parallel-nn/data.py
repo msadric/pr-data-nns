@@ -48,17 +48,33 @@ def get_dataloaders(batch_size, num_workers=0, root='data', validation_fraction=
         )
 
     elif dataset_type == 'cifar10':
-        train_transforms = torchvision.transforms.Compose([
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.RandomCrop(32, padding=4),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
+        # Transforms applied to training data (randomness to make network more robust against overfitting)
+        train_transforms = (
+            torchvision.transforms.Compose(  # Compose several transforms together.
+                [
+                    torchvision.transforms.Resize(
+                        (70, 70)
+                    ),  # Upsample CIFAR-10 images to make them work with AlexNet.
+                    torchvision.transforms.RandomCrop(
+                        (64, 64)
+                    ),  # Randomly crop image to make NN more robust against overfitting.
+                    torchvision.transforms.ToTensor(),  # Convert image into torch tensor.
+                    torchvision.transforms.Normalize(
+                        (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
+                    ),  # Normalize to [-1,1] via (image-mean)/std.
+                ]
+            )
+        )
+    
+        test_transforms = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.Resize((70, 70)),
+                torchvision.transforms.CenterCrop((64, 64)),
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ]
+        )
 
-        test_transforms = torchvision.transforms.Compose([
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
 
         # Load training data.
         train_dataset = torchvision.datasets.CIFAR10(
@@ -73,37 +89,6 @@ def get_dataloaders(batch_size, num_workers=0, root='data', validation_fraction=
             root=root,
             train=True,
             transform=test_transforms
-        )
-
-    elif dataset_type == 'imagenet':
-        train_transforms = torchvision.transforms.Compose([
-            torchvision.transforms.RandomResizedCrop(224),
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-        ])
-
-        test_transforms = torchvision.transforms.Compose([
-            torchvision.transforms.Resize(256),
-            torchvision.transforms.CenterCrop(224),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-        ])
-
-        # Load training data.
-        train_dataset = torchvision.datasets.ImageNet(
-            root=root,
-            split='train',
-            transform=train_transforms,
-            download=True
-        )
-
-        # Load validation data.
-        valid_dataset = torchvision.datasets.ImageNet(
-            root=root,
-            split='val',
-            transform=test_transforms,
-            download=True
         )
 
     # Perform index-based train-validation split of original training data.

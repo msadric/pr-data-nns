@@ -9,17 +9,17 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Train a deep learning model.')
     
     # Model choices
-    parser.add_argument('--model', choices=['ResNet', 'AlexNet', 'VGG16'], default='ResNet',
-                        help='Choose the deep learning model (ResNet, AlexNet, VGG16)')
+    parser.add_argument('--model', choices=['ResNet', 'AlexNet'], default='ResNet',
+                        help='Choose the deep learning model (ResNet, AlexNet)')
 
     # Dataset choices
-    parser.add_argument('--dataset', choices=['MNIST', 'CIFAR-10', 'ImageNet'], default='MNIST',
-                        help='Choose the dataset (MNIST, CIFAR-10, ImageNet)')
+    parser.add_argument('--dataset', choices=['MNIST', 'CIFAR-10'], default='MNIST',
+                        help='Choose the dataset (MNIST, CIFAR-10)')
 
     # Other parameters
     parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
-    parser.add_argument('--epochs', type=int, default=20, help='Number of training epochs')
+    parser.add_argument('--epochs', type=int, default=50, help='Number of training epochs')
     parser.add_argument('--results_folder', type=str, default='results', help='Path to the results folder')
 
     args = parser.parse_args()
