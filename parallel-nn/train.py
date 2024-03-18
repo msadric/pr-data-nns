@@ -1,8 +1,9 @@
-import time
+Forimport time
 import torch
 import torch.nn.functional as F
 import torch.distributed as dist
 from helper import get_right_ddp
+from torch.optim import lr_scheduler
 
 def train_model(model, num_epochs, train_loader,
                 valid_loader, optimizer):
@@ -16,13 +17,16 @@ def train_model(model, num_epochs, train_loader,
     if rank == 0:
         loss_history, train_acc_history, valid_acc_history = [], [], []
 
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
     
     for epoch in range(num_epochs): 
         
         train_loader.sampler.set_epoch(epoch) 
-      
+
         # Training
         model.train()
+        
         
         for batch_idx, (features, targets) in enumerate(train_loader): # Loop over mini batches.
             
@@ -37,7 +41,7 @@ def train_model(model, num_epochs, train_loader,
             dist.all_reduce(loss.clone().detach(), op=dist.ReduceOp.SUM) # Sum up mini-mini-batch losses from all processes.
             loss /= world_size # Divide by number of processes to get average.
             
-            optimizer.step()            
+            optimizer.step()
     
             if rank == 0:
                 loss_history.append(loss.item())
@@ -45,6 +49,8 @@ def train_model(model, num_epochs, train_loader,
                       f'| Batch {batch_idx:04d}/{len(train_loader):04d} '
                       f'| Loss: {loss:.4f}')
                 
+        scheduler.step() # Update the learning rate at the end of each epoch
+        
         # Validation
         
         model.eval()
@@ -89,7 +95,8 @@ def train_model(model, num_epochs, train_loader,
     elapsed = Elapsed.item() / world_size
     
     if rank == 0:
-            training_time = elapsed
-            print(f'Total Training Time: {elapsed:.2f}s')
+        training_time = elapsed
+        print(f'Total Training Time: {elapsed:.2f}s')
+        
     
-    return loss_history, train_acc_history, valid_acc_history, training_time
+    return (None if rank != 0 else (loss_history, train_acc_history, valid_acc_history, training_time))

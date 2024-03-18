@@ -1,22 +1,41 @@
 #!/bin/bash
 
-#SBATCH --job-name=resnet
-#SBATCH --partition=gpu_4
-#SBATCH --gres=gpu:1 # number of requested GPUs (GPU nodes shared btwn multiple jobs)
-#SBATCH --ntasks=1
+#SBATCH --job-name=16_gpu_test
+
+#SBATCH --partition=gpu_8
+
+#SBATCH --gres=gpu:8 # number of requested GPUs (GPU nodes shared between multiple jobs)
+#SBATCH --ntasks=16
+
 #SBATCH --ntasks-per-gpu=1
-#SBATCH --time=10:00 # wall-clock time limit
-#SBATCH --mem=64000
-#SBATCH --nodes=1
-#SBATCH --mail-type=ALL
+
+#SBATCH --time=03:00:00 # wall-clock time limit
+#SBATCH --mem=32000
+#SBATCH --nodes=2
+#SBATCH --mail-type=all
 #SBATCH --mail-user=uunsi@student.kit.edu
 
 module purge # Unload currently loaded modules.
 
-module jupyter/tensorflow/2023-10-10
-module load devel/cuda/11.8  
+source "parallel-venv/bin/activate"     
 
-source "8-1-venv/bin/activate"      
+srun python -u main.py --batch_size 256 --dataset MNIST --model ResNet
 
-srun python -u resnet.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
