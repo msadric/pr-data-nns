@@ -27,8 +27,14 @@ def train_model(model, num_epochs, train_loader,
         # Training
         model.train()
         
-        
-        for batch_idx, (features, targets) in enumerate(train_loader): # Loop over mini batches.
+        with torch.profiler.profile(
+        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
+        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/resnet18'),
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True
+) as prof:
+         for batch_idx, (features, targets) in enumerate(train_loader): # Loop over mini batches.
             
             features = features.cuda()
             targets = targets.cuda()

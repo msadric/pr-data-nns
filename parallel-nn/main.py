@@ -154,13 +154,12 @@ def main():
     optimizer = torch.optim.SGD(ddp_model.parameters(), lr=0.01, momentum=0.9)  
 
     loss_list, train_acc_list, valid_acc_list = [], [], []
-    with torch.autograd.profiler.profile(enabled=False, use_cuda=True) as prof:
-        loss_list, train_acc_list, valid_acc_list, training_time = train_model(model=model, 
-                                                        num_epochs=num_epochs,
-                                                        train_loader=train_loader, 
-                                                        valid_loader=valid_loader, 
-                                                        optimizer=optimizer)
-    
+    loss_list, train_acc_list, valid_acc_list, training_time = train_model(model=model, 
+                                                    num_epochs=num_epochs,
+                                                    train_loader=train_loader, 
+                                                    valid_loader=valid_loader, 
+                                                    optimizer=optimizer)
+
     if rank == 0:
         # Save loss and accuracy history.
         torch.save(loss_list, os.path.join(results_path, 'loss.npy'))
@@ -200,7 +199,6 @@ def main():
             writer = csv.writer(file)
             writer.writerow(summary_string.split(','))
             
-    print(prof)
     torch.distributed.destroy_process_group()
     
 
